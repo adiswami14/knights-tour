@@ -8,7 +8,6 @@ locationValid(I, J) :-
 
 % tracks all the possible moves the knight can make at location (I, J)
 possibleMoves(I, J, NextI, NextJ) :-
-    position(I, J),
     ((NextI is I+1, NextJ is J+2);
     (NextI is I+1, NextJ is J-2);
     (NextI is I-1, NextJ is J-2);
@@ -25,21 +24,50 @@ createEmptyList(S, [H|T]) :-
     NewS is S-1,
     createEmptyList(NewS, T).
 
-% creates a list that can track how many moves available at each spot in chessboard (so Warnsdorff's heuristic can be used)
+% changes list val at index I to value
+changeListVal([H|T], 0, Value) :-
+    H is Value.
+changeListVal([H|T], Index, Value) :-
+    Ind is Index-1,
+    changeListVal(T, Ind, Value).
+
+% updates the list that can track how many moves available at spot (I, J) in chessboard (so Warnsdorff's heuristic can be used)
+
+% checks the number of possible moves from (I, J) is Val
+checkPossibleMoves(I, J, L, Val) :-
+    chessboard(Rows, Columns),
+    setof(_, hasMovePossible(I, J, L), PossibleMoves), 
+    length(PossibleMoves, Val).
+    % convertToListIndex(I, J, Rows, Columns, Index),
+    % changeListVal(L, Index, NumPossibleMoves).
+
+makeMove() :- !.
 
 % displays final output of tour
 
+% Counting number of possible moves from location (I, J)
+hasMovePossible(I, J, L) :-
+    possibleMoves(I, J, NextI, NextJ),
+    notBeenVisited(NextI, NextJ, L).
+
+% checks if square (I, J) has not been visited
+notBeenVisited(I, J, L) :-
+    chessboard(Rows, Columns),
+    locationValid(I, J),
+    convertToListIndex(I, J, Rows, Columns, Index),
+    nth0(Index, L, Val),
+    Val =:= 0.  % Looking if value at the index hasn't been touched yet
+
 % converts 2-D position in chessboard to list index
-convertToListIndex(I, J, N, ListIndex) :-
-    chessboard(N, _),
-    position(I, J),
-    ListIndex is (N*I) + J.
+convertToListIndex(I, J, N, M, ListIndex) :-
+    chessboard(N, M),
+    ListIndex is (M*I) + J.
 
 % converts list index to position in chessboard
 convertToBoardPosition(Index, N, M, I, J) :-
     chessboard(N, M),
     I is Index//M,
-    J is Index - (I*N).
+    J is Index - (I*M).
 
 setup :-
     write('Enter the number of rows in chessboard: '),
