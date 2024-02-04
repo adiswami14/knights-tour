@@ -17,11 +17,14 @@ possibleMoves(I, J, NextI, NextJ) :-
     NextI is I-2, NextJ is J-1;
     NextI is I-2, NextJ is J+1.
 
-% checks the number of possible moves from (I, J) is Val
-checkPossibleMoves(I, J, L, Val) :-
+% checks the number of possible moves from (I, J) and puts the value into Val
+checkPossibleMoves(I, J, L, Val, NextI, NextJ) :-
     chessboard(Rows, Columns),
-    setof(_, hasMovePossible(I, J, L), PossibleMoves),
-    getLength(PossibleMoves, Val).  % Val is length of PossibleMoves
+    setof([NextI, NextJ], hasMovePossible(I, J, L, NextI, NextJ), PossibleMoves),
+    % getLength(PossibleMoves, Val), % Val is length of PossibleMoves
+    % write(PossibleMoves).
+    length(PossibleMoves, Val),
+    writeln(Val).
 
 % creates a list of size S, all zeros
 createEmptyList(0, L) :- !.
@@ -36,14 +39,17 @@ append([H|T], L, [H|R]) :-
 
 % Make optimal move by picking move with least amount of possible moves
 makeOptimalMove(I, J, L, NewI, NewJ) :- 
-    setof((Number, Locations), setof(checkPossibleMoves(I, J, L, Val), hasMovePossible(I, J, L), Locations), NextMoves),
-    (NewI, NewJ) = Locations.
+    % setof((Val, [NewI, NewJ]), checkPossibleMoves(NewI, NewJ, L, Val, NewI, NewJ), NextMoves),
+    checkPossibleMoves(I, J, L, Val, NewI, NewJ).
+    % setof(Locations, setof([NewI, NewJ], hasMovePossible(I, J, L, NewI, NewJ), Locations), NextMoves).
+    % writeln(NextMoves).
+    % (NewI, NewJ) = Locations.
 
 % Get length of a set
-getLength([], Length) :- !.
+getLength([], 0).
 getLength([H|T], Length) :- 
-    L is Length+1,
-    getLength(T, L).
+    getLength(T, L),
+    L is Length+1.
 
 % displays final output of tour
 displayTour([]) :- !.
@@ -52,27 +58,24 @@ displayTour([H|T]) :-
     displayTour(T).
 
 % Counting number of possible moves from location (I, J)
-hasMovePossible(I, J, L) :-
+hasMovePossible(I, J, L, NextI, NextJ) :-
     possibleMoves(I, J, NextI, NextJ),
     notBeenVisited(NextI, NextJ, L).
 
 % checks if square (I, J) has not been visited
 notBeenVisited(I, J, L) :-
-    chessboard(Rows, Columns),
     locationValid(I, J),
-    \+ member([I, J], L).
+    \+ member([[I, J]], L).
     % convertToListIndex(I, J, Rows, Columns, Index),
     % nth0(Index, L, Val),
     % Val =:= [0, 0].  % Looking if value at the index hasn't been touched yet
 
 % converts 2-D position in chessboard to list index
 convertToListIndex(I, J, N, M, ListIndex) :-
-    chessboard(N, M),
     ListIndex is (M*I) + J.
 
 % converts list index to position in chessboard
 convertToBoardPosition(Index, N, M, I, J) :-
-    chessboard(N, M),
     I is Index//M,
     J is Index - (I*M).
 
@@ -95,12 +98,13 @@ startTour :-
     position(X, Y),
     TotalMoves is (Rows*Columns),
     append(Tour, [[X, Y]], AppendedTour),
-    % createTour(AppendedTour, X, Y, 1, TotalMoves),
-    displayTour(AppendedTour).
+    createTour(AppendedTour, 1, 1, TotalMoves).
+    % displayTour(AppendedTour).
 
-createTour(Tour, I, J, MoveCount, TotalMoves) :-
-    MoveCount =< TotalMoves,
-    % makeOptimalMove(I, J, Tour, NewI, NewJ),
+createTour(L, _, _, 0) :- !.
+    % displayTour(L).
+createTour(Tour, I, J, TotalMoves) :-
+    makeOptimalMove(1, 1, Tour, NewI, NewJ),
     append(Tour, [[NewI, NewJ]], AppendedTour),
-    MoveIncrement is MoveCount+1,
-    createTour(AppendedTour, NewI, NewJ, MoveIncrement, TotalMoves).
+    MoveCount is TotalMoves-1,
+    createTour(AppendedTour, NewI, NewJ, MoveCount).
