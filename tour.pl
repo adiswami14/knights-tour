@@ -81,18 +81,11 @@ setup :-
     write('What would you like the column position of the knight to be?'),
     read(Y),
     ChessBoard =.. [chessboard, Size],
-    Position =.. [position, X, Y],
     assert(ChessBoard),
-    assert(Position).
-
-startTour :-
-    chessboard(Size),
-    position(X, Y),
     TotalMoves is (Size*Size) - 1,
     append(Tour, [[X, Y]], AppendedTour),
-    createTour(AppendedTour, 0, 0, TotalMoves).
-    % displayTour(AppendedTour).
-    
+    createTour(AppendedTour, X, Y, TotalMoves).
+
 createTour(Tour, I, J, 1) :- % Last move
     makeBruteForceMove(I, J, Tour, NewI, NewJ),
     append(Tour, [[NewI, NewJ]], AppendedTour),
