@@ -73,7 +73,17 @@ notBeenVisited(I, J, L) :-
     locationValid(I, J),
     \+ member([I, J], L).
 
-setup :-
+createTour(Tour, I, J, 1) :- % Last move
+    makeBruteForceMove(I, J, Tour, NewI, NewJ),
+    append(Tour, [[NewI, NewJ]], AppendedTour),
+    displayTour(AppendedTour).
+createTour(Tour, I, J, TotalMoves) :-
+    makeOptimalMove(I, J, Tour, NewI, NewJ),
+    append(Tour, [[NewI, NewJ]], AppendedTour),
+    MoveCount is TotalMoves-1,
+    createTour(AppendedTour, NewI, NewJ, MoveCount).
+
+tour :-
     write('Enter the size of chessboard: '),
     read(Size),
     write('What would you like the row position of the knight to be?'),
@@ -86,12 +96,4 @@ setup :-
     append(Tour, [[X, Y]], AppendedTour),
     createTour(AppendedTour, X, Y, TotalMoves).
 
-createTour(Tour, I, J, 1) :- % Last move
-    makeBruteForceMove(I, J, Tour, NewI, NewJ),
-    append(Tour, [[NewI, NewJ]], AppendedTour),
-    displayTour(AppendedTour).
-createTour(Tour, I, J, TotalMoves) :-
-    makeOptimalMove(I, J, Tour, NewI, NewJ),
-    append(Tour, [[NewI, NewJ]], AppendedTour),
-    MoveCount is TotalMoves-1,
-    createTour(AppendedTour, NewI, NewJ, MoveCount).
+% TODO: Need to fix infinite loop issue when there is a failure
