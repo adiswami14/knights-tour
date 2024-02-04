@@ -1,10 +1,10 @@
 % checks if the current location (I, J) is in the board
 locationValid(I, J) :-
-    chessboard(Rows, Columns),
+    chessboard(Size),
     I >= 0,
-    I < Rows,
+    I < Size,
     J >= 0,
-    J < Columns.
+    J < Size.
 
 % tracks all the possible moves the knight can make at location (I, J)
 possibleMoves(I, J, NextI, NextJ) :-
@@ -18,32 +18,38 @@ possibleMoves(I, J, NextI, NextJ) :-
     NextI is I-2, NextJ is J+1.
 
 % checks the number of possible moves from (I, J) and puts the value into Val
-checkPossibleMoves(I, J, L, Val, NextI, NextJ) :-
-    chessboard(Rows, Columns),
-    setof([NextI, NextJ], hasMovePossible(I, J, L, NextI, NextJ), PossibleMoves),
+checkPossibleMoves(I, J, L, Val) :-
+    getPossibleMoves(I, J, L, PossibleMoves, NextI, NextJ),
     % getLength(PossibleMoves, Val), % Val is length of PossibleMoves
     % write(PossibleMoves).
-    length(PossibleMoves, Val),
-    writeln(Val).
+    length(PossibleMoves, Val).
 
-% creates a list of size S, all zeros
-createEmptyList(0, L) :- !.
-createEmptyList(S, [[0, 0]|T]) :-
-    NewS is S-1,
-    createEmptyList(NewS, T).
+% get all the possible moves from (I, J)
+getPossibleMoves(I, J, L, Moves, NextI, NextJ) :-
+    setof([NextI, NextJ], hasMovePossible(I, J, L, NextI, NextJ), Moves).
 
 % switch to append to list
 append([], L, L).
 append([H|T], L, [H|R]) :-
     append(T, L, R).
 
+% Make a brute force move into remaining empty square
+makeBruteForceMove(I, J, L, NewI, NewJ) :-
+    getPossibleMoves(I, J, L, Moves, NextI, NextJ),
+    nth0(0, Moves, [NewI, NewJ]).
+
 % Make optimal move by picking move with least amount of possible moves
 makeOptimalMove(I, J, L, NewI, NewJ) :- 
-    % setof((Val, [NewI, NewJ]), checkPossibleMoves(NewI, NewJ, L, Val, NewI, NewJ), NextMoves),
-    checkPossibleMoves(I, J, L, Val, NewI, NewJ).
-    % setof(Locations, setof([NewI, NewJ], hasMovePossible(I, J, L, NewI, NewJ), Locations), NextMoves).
-    % writeln(NextMoves).
-    % (NewI, NewJ) = Locations.
+    getPossibleMoves(I, J, L, Moves, NextI, NextJ),
+    getOptimalMove(Moves, MoveList, L, SortedMoves),
+    nth0(0, SortedMoves, (_, [NewI, NewJ])).
+
+getOptimalMove([], AppendedMoves, _, SortedMoves) :-
+    sort(AppendedMoves, SortedMoves).
+getOptimalMove([[I, J]|T], MoveList, L, SortedMoves) :-
+    checkPossibleMoves(I, J, L, Val),
+    append(MoveList, [(Val, [I, J])], AppendedMoves),
+    getOptimalMove(T, AppendedMoves, L, SortedMoves).
 
 % Get length of a set
 getLength([], 0).
@@ -65,46 +71,34 @@ hasMovePossible(I, J, L, NextI, NextJ) :-
 % checks if square (I, J) has not been visited
 notBeenVisited(I, J, L) :-
     locationValid(I, J),
-    \+ member([[I, J]], L).
-    % convertToListIndex(I, J, Rows, Columns, Index),
-    % nth0(Index, L, Val),
-    % Val =:= [0, 0].  % Looking if value at the index hasn't been touched yet
-
-% converts 2-D position in chessboard to list index
-convertToListIndex(I, J, N, M, ListIndex) :-
-    ListIndex is (M*I) + J.
-
-% converts list index to position in chessboard
-convertToBoardPosition(Index, N, M, I, J) :-
-    I is Index//M,
-    J is Index - (I*M).
+    \+ member([I, J], L).
 
 setup :-
-    write('Enter the number of rows in chessboard: '),
-    read(Rows),
-    write('Enter the number of columns in chessboard: '),
-    read(Columns),
+    write('Enter the size of chessboard: '),
+    read(Size),
     write('What would you like the row position of the knight to be?'),
     read(X),
     write('What would you like the column position of the knight to be?'),
     read(Y),
-    ChessBoard =.. [chessboard, Rows, Columns],
+    ChessBoard =.. [chessboard, Size],
     Position =.. [position, X, Y],
     assert(ChessBoard),
     assert(Position).
 
 startTour :-
-    chessboard(Rows, Columns),
+    chessboard(Size),
     position(X, Y),
-    TotalMoves is (Rows*Columns),
+    TotalMoves is (Size*Size) - 1,
     append(Tour, [[X, Y]], AppendedTour),
-    createTour(AppendedTour, 1, 1, TotalMoves).
+    createTour(AppendedTour, 0, 0, TotalMoves).
     % displayTour(AppendedTour).
-
-createTour(L, _, _, 0) :- !.
-    % displayTour(L).
+    
+createTour(Tour, I, J, 1) :- % Last move
+    makeBruteForceMove(I, J, Tour, NewI, NewJ),
+    append(Tour, [[NewI, NewJ]], AppendedTour),
+    displayTour(AppendedTour).
 createTour(Tour, I, J, TotalMoves) :-
-    makeOptimalMove(1, 1, Tour, NewI, NewJ),
+    makeOptimalMove(I, J, Tour, NewI, NewJ),
     append(Tour, [[NewI, NewJ]], AppendedTour),
     MoveCount is TotalMoves-1,
     createTour(AppendedTour, NewI, NewJ, MoveCount).
